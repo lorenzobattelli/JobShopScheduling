@@ -5,7 +5,7 @@ from copy import deepcopy
 from istanza import *
 from random import choice
 
-verbose = False
+verbose = True
 
 ''' Classes '''
 class bcolors:
@@ -162,12 +162,11 @@ class Problema:
             print(u'\u2501' * 100)
             print()
 
-        s = Soluzione(soluzione=soluzione_parziale, grafo=grafo)
+        s = Soluzione(soluzione=soluzione_parziale, operazioni=self.operazioni, grafo=grafo)
         if s.is_ammissibile():
             self.lista_soluzioni.append(s)
             if verbose:
-                print("La soluzione è ammissibile")
-                print("CAMMINO CRITICO\t{}\nCOSTO\t\t{}\n".format(s.cammino_critico, s.makespan))
+                print(s.__str__())
         else:
             del s
             raise Exception("Errore: la soluzione NON è ammissibile\nCammino critico\t{}\nCosto\t\t{}".format(s.cammino_critico, s.makespan))
@@ -189,15 +188,12 @@ class Soluzione:
             - per ogni macchina, invece, l'ordine con cui si eseguono le operazioni associate è da decidere
     '''
 
-    def __init__(self, soluzione, grafo):
-        for m in range(len(soluzione)):
-            edges = [[soluzione[m][i], soluzione[m][i+1]] for i in range(len(soluzione[m])-1)]
-            for e in edges:
-                grafo.add_edge(e[0].id, e[1].id, weight=e[0].durata)
+    def __init__(self, operazioni, soluzione, grafo):
         self.soluzione = soluzione
-        self.grafo = grafo
+        self.grafo = self.update_grafo(grafo, soluzione)
         self.cammino_critico = dag_longest_path(self.grafo, default_weight=0)
         self.makespan = dag_longest_path_length(self.grafo, default_weight=0)
+        self.lista_blocchi = self.split_in_blocchi(operazioni)
 
     def __str__(self):
         return "La soluzione è ammissibile\nCAMMINO CRITICO\t{}\nCOSTO\t\t{}\n".format(self.cammino_critico, self.makespan)
@@ -213,6 +209,36 @@ class Soluzione:
 
         return f
 
+    def calcola_mosse(self):
+        '''  
+            calcolo tutte le possibili mosse di swap che compongono l'intorno, 
+            che consistono nello scambiare due operazioni adiacenti che stanno ad una delle due 
+            estremità di un blocco. Un blocco è una sottosequenza del cammino critico, 
+            le cui operazioni sono eseguite tutte nella stessa macchina
+            
+        '''
+        mosse = []
+        lista_blocchi = list(self.lista_blocchi)
+        for i in range(len(lista_blocchi)):
+            blocco = lista_blocchi[i][1]
+            dim = len(blocco)
+            if dim == 2:
+                mosse.append(tuple(blocco))
+            elif dim > 2:
+                mosse.append(tuple(blocco[:2]))
+                mosse.append(tuple(blocco[-2:]))
+
+        return mosse
+
+    def update_grafo(self, grafo, soluzione):
+        ''' Aggiungo gli archi al grafo partendo dalla soluzione ottenuta dall'algoritmo greedy '''
+        
+        for m in range(len(soluzione)):
+            edges = [[soluzione[m][i], soluzione[m][i+1]] for i in range(len(soluzione[m])-1)]
+            for e in edges:
+                grafo.add_edge(e[0].id, e[1].id, weight=e[0].durata)
+        return grafo
+
     def split_in_blocchi(self, operazioni):
         lista_blocchi = {}
         cammino = self.cammino_critico[1:-1]
@@ -227,7 +253,9 @@ class Soluzione:
                 id_blocco += 1
                 lista_blocchi[id_blocco] = [cammino[i+1]]
 
-        return lista_blocchi
+        return lista_blocchi.items()
+
+
 
 ''' Utils functions '''
 def get_ops_by_jobid(job_id, operazioni):
