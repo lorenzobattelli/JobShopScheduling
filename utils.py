@@ -93,12 +93,7 @@ class Problema:
         ''' prendo in input l'istanza del problema, istanzio le strutture dati e il grafo '''
 
         self.lista_soluzioni = []
-        jobs, operazioni, macchine = build_collections(
-            n=n, 
-            m=m, 
-            macchine_associate=macchine_associate, 
-            durate_ops=durate_ops
-        )
+        jobs, operazioni, macchine = build_collections(n, m, macchine_associate, durate_ops)
         self.jobs = jobs
         self.operazioni = operazioni
         self.macchine = macchine
@@ -116,7 +111,7 @@ class Problema:
         print_groundset(ground_set)
         if verbose:
             print("S_{}".format(k))
-        print_soluzione_parziale(soluzione_parziale); print()
+        print_soluzione(soluzione_parziale); print()
 
         while not stop_conditions(ground_set):
             if verbose:
@@ -155,14 +150,14 @@ class Problema:
             print_groundset(ground_set)
             if verbose:
                 print("S_{}".format(k))
-            print_soluzione_parziale(soluzione_parziale)
+            print_soluzione(soluzione_parziale)
         
         if verbose:
             print(u'\u2501' * 100)
             print(u'\u2501' * 100)
             print()
 
-        s = Soluzione(soluzione=soluzione_parziale, operazioni=self.operazioni, grafo=grafo)
+        s = Soluzione(problema=self, soluzione=soluzione_parziale, operazioni=self.operazioni, grafo=grafo)
         if s.is_ammissibile():
             self.lista_soluzioni.append(s)
             if verbose:
@@ -188,12 +183,15 @@ class Soluzione:
             - per ogni macchina, invece, l'ordine con cui si eseguono le operazioni associate è da decidere
     '''
 
-    def __init__(self, operazioni, soluzione, grafo):
+    def __init__(self, problema, operazioni, soluzione, grafo):
+        ''' Della soluzione mi salvo in più anche il puntatore all'istanza Problema '''
+
+        self._problema = problema
         self.soluzione = soluzione
         self.grafo = self.update_grafo(grafo, soluzione)
         self.cammino_critico = dag_longest_path(self.grafo, default_weight=0)
         self.makespan = dag_longest_path_length(self.grafo, default_weight=0)
-        self.lista_blocchi = self.split_in_blocchi(operazioni)
+        self.lista_blocchi = list(self.split_in_blocchi(operazioni))
 
     def __str__(self):
         return "La soluzione è ammissibile\nCAMMINO CRITICO\t{}\nCOSTO\t\t{}\n".format(self.cammino_critico, self.makespan)
@@ -209,7 +207,39 @@ class Soluzione:
 
         return f
 
-    def calcola_mosse(self):
+
+    def applica_mossa(self):
+        ''' 
+            scelgo casualmente una mossa da applicare e ritorno la nuova soluzione modificata
+            faccio lo swap, ritorno una soluzione clonata partendo dalla prima 
+        '''
+
+        print_soluzione(self.soluzione); print()
+        
+        chosen = choice(self.get_lista_mosse())  
+        if verbose:
+            print("Applico la mossa: {}".format(chosen))  
+        m_index = self._problema.operazioni[chosen[0]-1].macchina.id
+        
+        # applico mossa => swap operazioni
+        s_k = deepcopy(self)
+        lista_ops = s_k.soluzione[m_index-1]
+        for index in range(len(lista_ops)):
+            if lista_ops[index].id == chosen[0]:
+                i = index
+            if lista_ops[index].id == chosen[1]:
+                j = index
+        val_nodo_i = lista_ops[i]
+        val_nodo_j = lista_ops[j]
+        lista_ops[i] = val_nodo_j
+        lista_ops[j] = val_nodo_i
+
+        print_soluzione(s_k.soluzione)
+
+        return s_k
+
+
+    def get_lista_mosse(self):
         '''  
             calcolo tutte le possibili mosse di swap che compongono l'intorno, 
             che consistono nello scambiare due operazioni adiacenti che stanno ad una delle due 
@@ -218,7 +248,7 @@ class Soluzione:
             
         '''
         mosse = []
-        lista_blocchi = list(self.lista_blocchi)
+        lista_blocchi = self.lista_blocchi
         for i in range(len(lista_blocchi)):
             blocco = lista_blocchi[i][1]
             dim = len(blocco)
@@ -230,6 +260,7 @@ class Soluzione:
 
         return mosse
 
+
     def update_grafo(self, grafo, soluzione):
         ''' Aggiungo gli archi al grafo partendo dalla soluzione ottenuta dall'algoritmo greedy '''
         
@@ -238,6 +269,7 @@ class Soluzione:
             for e in edges:
                 grafo.add_edge(e[0].id, e[1].id, weight=e[0].durata)
         return grafo
+
 
     def split_in_blocchi(self, operazioni):
         lista_blocchi = {}
@@ -455,7 +487,7 @@ def print_ms(macchine):
             print(m.__str__())
 
 
-def print_soluzione_parziale(soluzione):
+def print_soluzione(soluzione):
     ''' stampo la struttura dati che contiene la soluzione parziale corrente '''
 
     if verbose: 
