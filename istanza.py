@@ -18,10 +18,10 @@ def read_input():
     """ Istanza 10x10x10 """
     # n = 10 # jobs, e operazioni per ciascuno
     # m = 10 # machines
-
+    # d = 100 # durata massima
     # generator = np.random.default_rng(seed=0)
 
     # lista_associazioni_macchine = generator.integers(low=0, high=m, size=(n, n))
-    # lista_durate = generator.integers(low=1, high=n+1, size=(n, n))
+    # lista_durate = generator.integers(low=1, high=d+1, size=(n, n))
 
     return n, m, lista_associazioni_macchine, lista_durate
