@@ -10,9 +10,10 @@ if __name__ == "__main__":
     search = Tabu(dim=2, max_iter=5)
 
     x_0 = p.get_current_sol() # soluzione di partenza ottenuta dalla greedy
+    
     x_k, mossa = x_0.seleziona_sol_ammissibile()
 
-    
+    # da implementare l'algortimo della tabu search qui sotto, vedi schema foglio
     
     
     

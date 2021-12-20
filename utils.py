@@ -3,7 +3,7 @@ from networkx.exception import NetworkXNoCycle
 from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
 from copy import deepcopy
 from istanza import *
-
+from random import choice
 verbose = True
 
 ''' Classes '''
@@ -56,7 +56,7 @@ class Operazione:
             raise Exception("Errore nell'istanziare il parametro 'macchina' dell'operazione {}, ".format(self.id))
 
     def __str__(self):
-        return "Operazione %s, con durata %s del job: %s su macchina: %s"%(self.id, self.durata, self.job_id, self.macchina.id)
+        return "O_%s (d={}, j={}, M={})".format(self.id, self.durata, self.job_id, self.macchina.id)
 
     def get_successori(self, operazioni, by_durate=False):
         if by_durate:
@@ -263,16 +263,12 @@ class Soluzione:
         ''' 
             Partendo dalla SOLUZIONE CORRENTE, effettuo un'esplorazione esaustiva dell'intorno,
             attraverso un passo di Very Large Neighborhood Search. Utilizzo la strategia best improvement per 
-            esplorare l'intorno perché posso permettermelo in quanto le mosse possibili che costituiscono l'intorno sono
+            esplorare l'intorno in modo esaustivo perché posso permettermelo in quanto le mosse possibili che costituiscono l'intorno sono
             in numero polinomiale, in particolare nel caso peggiore sono 2*m (macchine)
         '''
-
-        # if verbose:
-        #     print("Parto dalla soluzione corrente nell'intorno")
-        #     print_soluzione(self.soluzione); 
         
-        lista_mosse = self.get_lista_mosse()
         lista_valutazioni = []
+        lista_mosse = self.get_lista_mosse()
         
         if verbose:
             print("Esplorazione esaustiva dell'intorno: strategia best improvement\n{}".format(lista_mosse))
@@ -291,7 +287,7 @@ class Soluzione:
             target = lista_mosse[i]
             m_index = self._problema.operazioni[target[0]-1].macchina.id
             
-            # applico mossa => swap operazioni
+            # faccio swap
             lista_ops = x_k.soluzione[m_index-1]
             for index in range(len(lista_ops)):
                 if lista_ops[index].id == target[0]:
@@ -319,8 +315,9 @@ class Soluzione:
             print("Soluzioni possibili da visitare nell'intorno")
             for i in range(len(lista_ordinata_fo)):
                 if i == 0: print(BgColors.OKGREEN, end="")
+                print("Applicando la mossa {} ottengo".format(lista_ordinata_fo[i][1]))
                 print_soluzione(lista_ordinata_fo[i][0].soluzione)
-                print("Costo: {} con mossa {}\n".format(lista_ordinata_fo[i][0].makespan, lista_ordinata_fo[i][1]))
+                print("Costo: {}\n".format(lista_ordinata_fo[i][0].makespan))
                 if i == 0: print(BgColors.ENDC, end="")
 
         return lista_ordinata_fo[0][0], lista_ordinata_fo[0][1]
@@ -361,8 +358,8 @@ def build_collections(n, m, macchine_associate, durate_ops):
 
     jobs = []
     operazioni = []
-    #if verbose:
-        #print("Sono stati creati i seguenti oggetti:")
+    if verbose:
+        print("Sono stati creati i seguenti oggetti:")
 
     # creo la lista delle macchine
     macchine = [Macchina(id=id+1) for id in range(m)]
@@ -383,8 +380,8 @@ def build_collections(n, m, macchine_associate, durate_ops):
                 macchina=macchine[macchina_id]
             )
             operazioni.append(nuova_operazione) # riempio lista di tutte operazioni
-            #if verbose:
-                #print(nuova_operazione.__str__())
+            if verbose:
+                print(nuova_operazione.__str__())
             index += 1           
 
     for m in macchine:
