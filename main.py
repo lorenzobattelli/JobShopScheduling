@@ -5,14 +5,15 @@ if __name__ == "__main__":
 
     p = Problema(*read_input())
     p.find_greedy_solution()
-    s = p.get_current_sol()
+    
+    print("\nRICERCA LOCALE\n")
+    search = Tabu(dim=2, max_iter=5)
 
-    s_k = s.applica_mossa()
-
-    # devo testare se questa s_k è ammissibile
-    # ne aggiorno i vari attributi per completarne la modifica
-    
-    
-    
+    x_0 = p.get_current_sol() # soluzione di partenza ottenuta dalla greedy
+    x_k, mossa = x_0.seleziona_sol_ammissibile()
 
     
+    
+    
+    
+
