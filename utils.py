@@ -1,4 +1,5 @@
 from networkx import find_cycle, DiGraph
+from networkx.algorithms import swap
 from networkx.exception import NetworkXNoCycle
 from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
 from copy import deepcopy
@@ -290,10 +291,10 @@ class Soluzione:
                     i = index
                 if lista_ops[index].id == target[1]:
                     j = index
-            val_nodo_i = lista_ops[i]
-            val_nodo_j = lista_ops[j]
-            lista_ops[i] = val_nodo_j
-            lista_ops[j] = val_nodo_i
+
+            park = lista_ops[i]
+            lista_ops[i] = lista_ops[j]
+            lista_ops[j] = park
 
             # devo testare se questa x_k è ammissibile
             # ne aggiorno i vari attributi per completarne la modifica
