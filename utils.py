@@ -255,11 +255,7 @@ class Soluzione:
         return mosse
 
 
-    def applica_mossa(self):
-        pass
-
-
-    def seleziona_sol_ammissibile(self):
+    def find_best(self):
         ''' 
             Partendo dalla SOLUZIONE CORRENTE, effettuo un'esplorazione esaustiva dell'intorno,
             attraverso un passo di Very Large Neighborhood Search. Utilizzo la strategia best improvement per 
@@ -309,7 +305,7 @@ class Soluzione:
                 raise Exception(BgColors.FAIL+"Visitata soluzione nell'intorno inammissibile: {}, tramite la mossa {}".format(x_k.soluzione, target)+BgColors.ENDC)
 
         # ora ho una lista di soluzioni calcolate visitando l'intorno partendo dalla quella corrente
-        lista_ordinata_fo = sorted(lista_valutazioni, key=esplorazione_criteria)
+        lista_ordinata_fo = sorted(lista_valutazioni, key=lambda t: dag_longest_path_length(t[0].grafo, default_weight=0))
 
         if verbose:
             print("Soluzioni possibili da visitare nell'intorno")
@@ -322,10 +318,6 @@ class Soluzione:
 
         return lista_ordinata_fo[0][0], lista_ordinata_fo[0][1]
 
-
-def esplorazione_criteria(tupla):
-    return dag_longest_path_length(tupla[0].grafo, default_weight=0)
-    
 
 class Tabu:
     def __init__(self, dim, max_iter):
@@ -346,6 +338,23 @@ def get_ops_by_jobid(job_id, operazioni):
     ''' seleziono le operazioni dato job_id in input ''' 
 
     return [o for o in operazioni if o.job_id == job_id]
+
+
+def build_groundset(jobs, macchine):
+    '''
+        crea una struttura dati che contiene, per ogni macchina, la lista delle operazioni da processare, 
+        divise per job di appartenenza, in cui c'è:
+        - una lista per macchina,
+        - per ciascuna di liste, una lista per ogni job con cui suddividere le operazioni della coda
+        - e ciascuna lista job contiene le operazioni che lo compongono, da eseguire su quella macchina
+    '''
+
+    ground_set = [[] for m in macchine] # una riga per macchina
+    for m in range(len(macchine)): # ciascuna contenente una riga per ogni job
+        ground_set[m] = [[] for j in jobs] # una lista per ogni job
+        for j in range(len(ground_set[m])):
+            ground_set[m][j] = [op for op in macchine[m].coda_da_processare if op.job_id == j+1]
+    return ground_set
 
 
 def build_collections(n, m, macchine_associate, durate_ops):
@@ -462,23 +471,6 @@ def heuristic_sort(operazioni, tutte_ops, random_heuristic=False):
         sorted_ops = [op for (op, _) in sorted_map]
 
     return sorted_ops, euristica
-
-
-def build_groundset(jobs, macchine):
-    '''
-        crea una struttura dati che contiene, per ogni macchina, la lista delle operazioni da processare, 
-        divise per job di appartenenza, in cui c'è:
-        - una lista per macchina,
-        - per ciascuna di liste, una lista per ogni job con cui suddividere le operazioni della coda
-        - e ciascuna lista job contiene le operazioni che lo compongono, da eseguire su quella macchina
-    '''
-
-    ground_set = [[] for m in macchine] # una riga per macchina
-    for m in range(len(macchine)): # ciascuna contenente una riga per ogni job
-        ground_set[m] = [[] for j in jobs] # una lista per ogni job
-        for j in range(len(ground_set[m])):
-            ground_set[m][j] = [op for op in macchine[m].coda_da_processare if op.job_id == j+1]
-    return ground_set
 
 
 def prune_ops(jobs):

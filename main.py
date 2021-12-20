@@ -11,7 +11,7 @@ if __name__ == "__main__":
 
     x_0 = p.get_current_sol() # soluzione di partenza ottenuta dalla greedy
     
-    x_k, mossa = x_0.seleziona_sol_ammissibile()
+    x_k, mossa = x_0.find_best()
 
     # da implementare l'algortimo della tabu search qui sotto, 
     # vedi schema foglio
