@@ -512,34 +512,8 @@ def is_secure(ground_set, op):
         return True
 
 
+
 ''' Print functions '''
-def print_jobs(jobs):
-    ''' stampo lista di tutti i job e gli ID di tutte le loro relative operazioni '''
-
-    if verbose:
-        print("Lista di tutti i job")
-        for job in jobs:
-            print(job.__str__())
-
-
-def print_ops(operazioni):
-    ''' stampo lista flatten di tutte le operazioni '''
-    
-    if verbose: 
-        print("Lista di tutte le operazioni di tutti i job")
-        for o in operazioni:
-            print(o.__str__())
-
-
-def print_ms(macchine):
-    ''' stampo la lista flatten di tutte le macchine '''
-
-    if verbose: 
-        print("Lista di tutte le macchine")
-        for m in macchine:
-            print(m.__str__())
-
-
 def print_soluzione(soluzione):
     ''' stampo la struttura dati che contiene la soluzione parziale corrente '''
 
@@ -567,4 +541,3 @@ def print_lista_soluzioni(soluzioni):
 
     if verbose:
         print("Lista di tutte le soluzioni trovate\n{}".format([s.makespan for s in soluzioni]))
-

@@ -13,7 +13,8 @@ if __name__ == "__main__":
     
     x_k, mossa = x_0.seleziona_sol_ammissibile()
 
-    # da implementare l'algortimo della tabu search qui sotto, vedi schema foglio
+    # da implementare l'algortimo della tabu search qui sotto, 
+    # vedi schema foglio
     
     
     
