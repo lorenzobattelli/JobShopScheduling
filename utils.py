@@ -5,6 +5,9 @@ from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
 from copy import deepcopy
 from istanza import *
 from random import choice
+
+
+
 verbose = True
 
 ''' Classes '''
@@ -57,7 +60,7 @@ class Operazione:
             raise Exception("Errore nell'istanziare il parametro 'macchina' dell'operazione {}, ".format(self.id))
 
     def __str__(self):
-        return "O_%s (d={}, j={}, M={})".format(self.id, self.durata, self.job_id, self.macchina.id)
+        return "O_{} (d={}, j={}, M={})".format(self.id, self.durata, self.job_id, self.macchina.id)
 
     def get_successori(self, operazioni, by_durate=False):
         if by_durate:
@@ -148,25 +151,18 @@ class Problema:
                 print("S_{}".format(k))
             print_soluzione(soluzione_parziale)
         
-        if verbose:
-            print(u'\u2501' * 100)
-            print(u'\u2501' * 100)
-            print()
-        
         s = Soluzione(problema=self, soluzione=soluzione_parziale, grafo=deepcopy(self.grafo_iniziale))
         if s.is_ammissibile():
-            self.lista_soluzioni.append(s)
             if verbose:
+                print(u'\u2501' * 100)
                 print(s.__str__())
+                print(u'\u2501' * 100)
+                print(u'\u2501' * 100)
+                print()
+            return s
         else:
             del s
             raise Exception("Errore: la soluzione NON è ammissibile\nCammino critico\t{}\nCosto\t\t{}".format(s.cammino_critico, s.makespan))
-
-
-    def get_current_sol(self):
-        ''' estraggo l'ultima soluzione calcolata, quindi quella corrente '''
-
-        return self.lista_soluzioni[-1]
 
 
 class Soluzione: 
@@ -182,25 +178,20 @@ class Soluzione:
     def __init__(self, problema, soluzione, grafo):
         ''' Della soluzione mi salvo in più anche il puntatore all'istanza Problema '''
 
-        self._problema = problema
+        self.problema = problema
         self.soluzione = soluzione
-        self.grafo = self.update_grafo(grafo, soluzione)
+        self.grafo = update_grafo(grafo, soluzione)
         self.cammino_critico = dag_longest_path(self.grafo, default_weight=0)
-        self.makespan = dag_longest_path_length(self.grafo, default_weight=0)
-        self.lista_blocchi = self.split_in_blocchi(self._problema.operazioni)
+        self.makespan = self.getobjval()
+        self.lista_blocchi = self.split_in_blocchi(self.problema.operazioni)
 
+    
     def __str__(self):
-        return "La soluzione è ammissibile\nCAMMINO CRITICO\t{}\nCOSTO\t\t{}\n".format(self.cammino_critico, self.makespan)
+        return "La soluzione è ammissibile\nCAMMINO CRITICO\t{}\nCOSTO\t\t{}\n".format(self.cammino_critico[1:-1], self.makespan)
 
 
-    def update_grafo(self, grafo, soluzione):
-        ''' Aggiungo gli archi al grafo partendo dalla soluzione ottenuta dall'algoritmo greedy '''
-        
-        for m in range(len(soluzione)):
-            edges = [[soluzione[m][i], soluzione[m][i+1]] for i in range(len(soluzione[m])-1)]
-            for e in edges:
-                grafo.add_edge(e[0].id, e[1].id, weight=e[0].durata)
-        return grafo
+    def getobjval(self):
+        return dag_longest_path_length(self.grafo, default_weight=0)
 
 
     def split_in_blocchi(self, operazioni):
@@ -259,30 +250,23 @@ class Soluzione:
     def find_best(self):
         ''' 
             Partendo dalla SOLUZIONE CORRENTE, effettuo un'esplorazione esaustiva dell'intorno,
-            attraverso un passo di Very Large Neighborhood Search. Utilizzo la strategia best improvement per 
-            esplorare l'intorno in modo esaustivo perché posso permettermelo in quanto le mosse possibili che costituiscono l'intorno sono
-            in numero polinomiale, in particolare nel caso peggiore sono 2*m (macchine)
+            attraverso un passo di Very Large Neighborhood Search. Le mosse possibili che costituiscono l'intorno sono
+            in numero polinomiale, infatti dalla lunghezza del cammino critico
         '''
         
         lista_valutazioni = []
         lista_mosse = self.get_lista_mosse()
-        
-        if verbose:
-            print("Esplorazione esaustiva dell'intorno: strategia best improvement\n{}".format(lista_mosse))
-            print(BgColors.OKCYAN)
-            print("Soluzione corrente:")
-            print_soluzione(self.soluzione); 
-            print(BgColors.ENDC)
-
+                
         # scorro la lista delle mosse possibili per l'intorno corrente e ne valuto il valore della funzione obiettivo
         for i in range(len(lista_mosse)):
 
-            # ad ogni iterazione il grafo si ripristina allo stato iniziale  
             x_k = deepcopy(self)
-            x_k.grafo = deepcopy(self._problema.grafo_iniziale)
+
+            # ad ogni iterazione il grafo si ripristina allo stato iniziale  
+            x_k.grafo = deepcopy(x_k.problema.grafo_iniziale)
 
             target = lista_mosse[i]
-            m_index = self._problema.operazioni[target[0]-1].macchina.id
+            m_index = self.problema.operazioni[target[0]-1].macchina.id
             
             # faccio swap
             lista_ops = x_k.soluzione[m_index-1]
@@ -296,10 +280,12 @@ class Soluzione:
             lista_ops[i] = lista_ops[j]
             lista_ops[j] = park
 
-            # devo testare se questa x_k è ammissibile
-            # ne aggiorno i vari attributi per completarne la modifica
-            x_k.grafo = self.update_grafo(grafo=x_k.grafo, soluzione=x_k.soluzione)
+            # ne aggiorno i vari attributi e controllo l'ammissibilità di questa nuova soluzione
+            x_k.grafo = update_grafo(grafo=x_k.grafo, soluzione=x_k.soluzione)
+            x_k.cammino_critico = dag_longest_path(x_k.grafo, default_weight=0)
             x_k.makespan = dag_longest_path_length(x_k.grafo, default_weight=0)
+            x_k.lista_blocchi = x_k.split_in_blocchi(self.problema.operazioni)
+
             if x_k.is_ammissibile():
                 lista_valutazioni.append((x_k, target))
             else:
@@ -308,16 +294,7 @@ class Soluzione:
         # ora ho una lista di soluzioni calcolate visitando l'intorno partendo dalla quella corrente
         lista_ordinata_fo = sorted(lista_valutazioni, key=lambda t: dag_longest_path_length(t[0].grafo, default_weight=0))
 
-        if verbose:
-            print("Soluzioni possibili da visitare nell'intorno")
-            for i in range(len(lista_ordinata_fo)):
-                if i == 0: print(BgColors.OKGREEN, end="")
-                print("Applicando la mossa {} ottengo".format(lista_ordinata_fo[i][1]))
-                print_soluzione(lista_ordinata_fo[i][0].soluzione)
-                print("Costo: {}\n".format(lista_ordinata_fo[i][0].makespan))
-                if i == 0: print(BgColors.ENDC, end="")
-
-        return lista_ordinata_fo[0][0], lista_ordinata_fo[0][1]
+        return lista_ordinata_fo
 
 
 class Tabu:
@@ -332,6 +309,9 @@ class Tabu:
         self.dim = dim
         self.max_iter = max_iter
 
+
+    def is_full(self):
+        return len(self.tabulist) == self.dim
 
 
 ''' Utils functions '''
@@ -504,6 +484,23 @@ def is_secure(ground_set, op):
     else:
         return True
 
+
+def halt(k, maxiter):
+    return k >= maxiter
+
+
+def inv(mossa):
+    return (mossa[1], mossa[0])
+
+
+def update_grafo(grafo, soluzione):
+    ''' Aggiungo gli archi al grafo  '''
+    
+    for m in range(len(soluzione)):
+        edges = [[soluzione[m][i], soluzione[m][i+1]] for i in range(len(soluzione[m])-1)]
+        for e in edges:
+            grafo.add_edge(e[0].id, e[1].id, weight=e[0].durata)
+    return grafo
 
 
 ''' Print functions '''
