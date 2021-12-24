@@ -282,14 +282,12 @@ class Soluzione:
 
             # ne aggiorno i vari attributi e controllo l'ammissibilità di questa nuova soluzione
             x_k.grafo = update_grafo(grafo=x_k.grafo, soluzione=x_k.soluzione)
-            x_k.cammino_critico = dag_longest_path(x_k.grafo, default_weight=0)
-            x_k.makespan = dag_longest_path_length(x_k.grafo, default_weight=0)
-            x_k.lista_blocchi = x_k.split_in_blocchi(self.problema.operazioni)
-
             if x_k.is_ammissibile():
+                x_k.cammino_critico = dag_longest_path(x_k.grafo, default_weight=0)
+                x_k.makespan = dag_longest_path_length(x_k.grafo, default_weight=0)
+                x_k.lista_blocchi = x_k.split_in_blocchi(self.problema.operazioni)
+
                 lista_valutazioni.append((x_k, target))
-            else:
-                raise Exception(BgColors.FAIL+"Visitata soluzione nell'intorno inammissibile: {}, tramite la mossa {}".format(x_k.soluzione, target)+BgColors.ENDC)
 
         # ora ho una lista di soluzioni calcolate visitando l'intorno partendo dalla quella corrente
         lista_ordinata_fo = sorted(lista_valutazioni, key=lambda t: dag_longest_path_length(t[0].grafo, default_weight=0))
