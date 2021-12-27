@@ -270,14 +270,14 @@ def is_secure(ground_set, op):
         e itero il ragionamento
     '''
 
-    all = []
+    tutte = []
     for m in range(len(ground_set)):
         if m != op.macchina.id-1:
             lista_ops = get_ops_by_jobid(op.job_id, ground_set[m][op.job_id-1]) 
-            all += lista_ops    
+            tutte += lista_ops    
 
-    if all != []:
-        ordinata = sorted(all, key=lambda o: o.id)
+    if tutte != []:
+        ordinata = sorted(tutte, key=lambda o: o.id)
         return False if ordinata[0].id < op.id else True 
     else:
         return True
