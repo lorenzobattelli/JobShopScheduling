@@ -317,10 +317,13 @@ def update_grafo(grafo, soluzione):
     return grafo
 
 
+def stallo(l, search):
+    lastel = p.lista_soluzioni[-search.stallo:]
+    return all(lastel[i].makespan <= lastel[i+1].makespan for i in range(len(lastel)-1))
+
 def halt(p, k, search):
     if len(p.lista_soluzioni) > search.stallo + 1:
-        lastel = p.lista_soluzioni[-search.stallo:]
-        return k >= search.max_iter or all(lastel[i].makespan <= lastel[i+1].makespan for i in range(len(lastel)-1))
+        return k >= search.max_iter or stallo(p.lista_soluzioni, search)
     else:
         return k >= search.max_iter
 
