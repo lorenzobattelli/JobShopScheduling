@@ -1,7 +1,8 @@
 python3 main.py 		\
-	-v 		\
+	-v 					\
 	--euristica=LPT 	\
-	-tabu 		\
-	--max_iter=5 	\
-	--stallo=3 	\
-	--tabu_list_dim=5
+	-tabu 				\
+	--max_iter=5 		\
+	--stallo=3 			\
+	--tabu_list_dim=5	\
+	#--multistart=1		
