@@ -4,7 +4,7 @@ from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
 from copy import deepcopy
 from random import choice
 from istanza import read_input
-
+from argparse import ArgumentParser
 
 
 class BgColors:
@@ -94,9 +94,24 @@ class Tabu:
         '''
 
         self.tabulist = []
-        self.dim = dim
-        self.max_iter = max_iter
-        self.stallo = stallo
+
+        if dim == "auto":
+            # calcolo la dimensione della lista automaticamente
+            self.dim = 3 # (default)
+        else:
+             self.dim = int(dim)
+
+        if max_iter == "auto":
+            # calcolo max_iter automaticamente
+            self.max_iter = 5 # (default)
+        else:
+            self.max_iter = int(max_iter)
+
+        if stallo == "auto":
+            # calcolo lo stallo automaticamente
+            self.stallo = 3 # (default)
+        else:
+            self.stallo = int(stallo)
 
 
     def is_full(self):
@@ -224,32 +239,32 @@ def stop_conditions(ground_set):
     return empty
 
 
-def heuristic_sort(operazioni, tutte_ops, random_heuristic=False):
+def heuristic_sort(operazioni, tutte_ops):
     ''' ordino una lista di operazioni in base ad un criterio euristico sulla durata dell'operazione '''
 
     opts = ("LPT", "SPT", "MIS", "MWKR")
-    if random_heuristic:
-        euristica = choice(opts)
+    if euristica == "auto":
+        euristica_scelta = choice(opts)
     else:
-        euristica = opts[0]
+        euristica_scelta = euristica
 
-    if euristica == "LPT":
+    if euristica_scelta == "LPT":
         sorted_ops = sorted(operazioni, reverse=True, key=lambda o: o.durata)
 
-    elif euristica == "SPT":
+    elif euristica_scelta == "SPT":
         sorted_ops = sorted(operazioni, reverse=False, key=lambda o: o.durata)
 
-    elif euristica == "MIS": # maggior numero di successori, conto i successori
+    elif euristica_scelta == "MIS": # maggior numero di successori, conto i successori
         mapp = {o:o.get_successori(tutte_ops) for o in operazioni}
         sorted_map = sorted(mapp.items(), reverse=True, key=lambda el: len(el))
         sorted_ops = [op for (op, _) in sorted_map]
 
-    elif euristica == "MWKR": # maggior quantità di tempo-lavoro rimanente dopo il completamento, sommo le durate
+    elif euristica_scelta == "MWKR": # maggior quantità di tempo-lavoro rimanente dopo il completamento, sommo le durate
         mapp = [(o, sum(o.get_successori(tutte_ops, by_durate=True))) for o in operazioni]
         sorted_map = sorted(mapp, reverse=True, key=lambda el: el[1])
         sorted_ops = [op for (op, _) in sorted_map]
 
-    return sorted_ops, euristica
+    return sorted_ops, euristica_scelta
 
 
 def prune_ops(jobs):
@@ -317,8 +332,8 @@ def update_grafo(grafo, soluzione):
     return grafo
 
 
-def stallo(l, search):
-    l = l[-search.stallo:]
+def in_stallo(l_sols, search):
+    l = l_sols[-search.stallo:]
     return all(l[i].makespan <= l[i+1].makespan for i in range(len(l)-1))
 
 
@@ -326,7 +341,7 @@ def halt(p, k, search):
     ''' condizione di stop: max_iter o stallo (massimo numero di iterazioni in cui non migliora la soluzione) '''
     
     if len(p.lista_soluzioni) > search.stallo + 1:
-        return k >= search.max_iter or stallo(p.lista_soluzioni, search)
+        return k >= search.max_iter or in_stallo(p.lista_soluzioni, search)
     else:
         return k >= search.max_iter
 
@@ -407,9 +422,6 @@ def find_best(p, search):
 
     
 class Problema:
-    
-
-
     ''' Istanza del problema, memorizza lista delle soluzioni trovate '''
 
     def __init__(self, n, m, macchine_associate, durate_ops):
@@ -420,7 +432,7 @@ class Problema:
         self.grafo_iniziale = build_graph(self.jobs, self.operazioni)
 
 
-    def find_greedy_solution(self, random=False):
+    def find_greedy_solution(self):
         ''' algoritmo greedy non esatto per la ricerca di una soluzione ammissibile del problema '''
 
         ground_set = build_groundset(self.jobs, deepcopy(self.macchine))
@@ -439,10 +451,10 @@ class Problema:
 
             for m_index in range(len(ground_set)):
                 possibili_operazioni = prune_ops(ground_set[m_index])
-                possibili_operazioni_ordinate, euristica = heuristic_sort(possibili_operazioni, self.operazioni, random_heuristic=random)
+                possibili_operazioni_ordinate, euristica_scelta = heuristic_sort(operazioni=possibili_operazioni, tutte_ops=self.operazioni)
                 if possibili_operazioni_ordinate != []:
                     if verbose:
-                        print("Seleziono per M{} con euristica {} tra le seguenti: {}".format(m_index+1, euristica, ["{}(d={})".format(op.id, op.durata) for op in possibili_operazioni_ordinate]))
+                        print("Seleziono per M{} con euristica {} tra le seguenti: {}".format(m_index+1, euristica_scelta, ["{}(d={})".format(op.id, op.durata) for op in possibili_operazioni_ordinate]))
                 
                 for z in range(len(possibili_operazioni_ordinate)):
                     
@@ -604,14 +616,47 @@ class Soluzione:
 
 
 
-verbose = True
-
 if __name__ == "__main__":
+    parser = ArgumentParser(description='Il programma risolve il problema del Job Shop Scheduling utilizzando la TabuSearch partendo da una soluzione iniziale calcolata con un algoritmo euristico costruttivo Greedy')
+    parser.add_argument('-v', '--verbose', action='store_true', default=False,
+                        help="Verbose, se è True mostra output a schermo, altrimenti se False no")
+
+    parser.add_argument('--euristica', default="auto", type=str, choices=["LPT", "SPT", "MIS", "MWKR", "auto"],
+                        help="""Eusitica di selezione per l'agoritmo greedy. 
+                        A scelta tra LPT, SPT, MIS, MWKR. 
+                        Se 'auto' (default) allora viene scelta casualmente ad ogni iterazione dall'algortimo""")
+
+    parser.add_argument('-tabu', '--tabu_search', action='store_true', default=False,
+                        help="""Se True, decido di utilizzare la tabu search per migliorare la soluzione iniziale ottenuta dall'algoritmo euristico greedy,
+                        altrimenti mi fermo alla prima soluzione data dall'algoritmo greedy""")
+
+    parser.add_argument('--tabu_list_dim', default="auto", type=str,
+                        help="""Iperparametro per la tabu search, dimesione della tabu list. 
+                        Se 'auto' (default) allora viene fissata automaticamente dall'algoritmo.""")
+    parser.add_argument('--max_iter', default="auto", type=str,
+                        help="""Iperparametro per la tabu search, massimo numero di iterazione per far terminare la tabu search. 
+                        Se 'auto' (default) allora viene fissata automaticamente dall'algoritmo""")
+    parser.add_argument('--stallo', default="auto", type=str,
+                        help="""Iperparametro per la tabu search, massimo numero di iterazioni in cui la soluzione non 
+                        migliora durante la search oltre il quale l'algoritmo termina. Se 'auto' (default) viene calcolato automaticamente dall'algoritmo""")
+
+    args = parser.parse_args()
+
+    # arguments parser
+    verbose = args.verbose
+    euristica = args.euristica
+    tabu_search = args.tabu_search
+    tabu_list_dim = args.tabu_list_dim
+    max_iter = args.max_iter
+    stallo = args.stallo
 
     p = Problema(*read_input())
-    tabusearch = Tabu(dim=2, max_iter=5, stallo=3)
 
-    best = find_best(p, tabusearch)
+    if tabu_search:
+        tabusearch = Tabu(dim=tabu_list_dim, max_iter=max_iter, stallo=stallo)
+        best = find_best(p, tabusearch)
+    else:
+        best = p.find_greedy_solution()
 
     if verbose:
         print(u'\u2501' * 100)
@@ -620,4 +665,5 @@ if __name__ == "__main__":
         print_soluzione(best.soluzione)
         print("Cammino critico: {}\nCosto: {}\n".format(best.cammino_critico[1:-1], best.makespan)) 
 
-    print_lista_soluzioni(p.lista_soluzioni)
+        if tabu_search:
+            print_lista_soluzioni(p.lista_soluzioni)
