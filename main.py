@@ -673,7 +673,7 @@ if __name__ == "__main__":
         else:
             best = p.find_greedy_solution()
 
-        if verbose:
+        if verbose and tabu_search:
             print(u'\u2501' * 100)
             print(u'\u2501' * 100)
         print("Miglior soluzione trovata start {}/{}".format(start_i+1, num_starts))
@@ -683,4 +683,5 @@ if __name__ == "__main__":
         print("Cammino critico: {}".format(best.cammino_critico[1:-1]))
         print("Costo: {}\n".format(best.makespan)) 
         
-        print_lista_soluzioni(p.lista_soluzioni)
+        if tabu_search:
+            print_lista_soluzioni(p.lista_soluzioni)
