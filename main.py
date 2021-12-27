@@ -86,7 +86,7 @@ class Macchina:
 
 
 class Tabu:
-    def __init__(self, dim, max_iter):
+    def __init__(self, dim, max_iter, stallo):
         ''' 
             Per la tabu search mi serve una coda di mosse tabu, quindi essa sarà una lista di coppie, 
             poi come iperparametro ne decido la dimensione e il numero massimo di iterazioni 
@@ -96,6 +96,7 @@ class Tabu:
         self.tabulist = []
         self.dim = dim
         self.max_iter = max_iter
+        self.stallo = stallo
 
 
     def is_full(self):
@@ -316,8 +317,12 @@ def update_grafo(grafo, soluzione):
     return grafo
 
 
-def halt(k, maxiter):
-    return k >= maxiter
+def halt(p, k, search):
+    if len(p.lista_soluzioni) > search.stallo + 1:
+        lastel = p.lista_soluzioni[-search.stallo:]
+        return k >= search.max_iter or all(lastel[i].makespan <= lastel[i+1].makespan for i in range(len(lastel)-1))
+    else:
+        return k >= search.max_iter
 
 
 def find_best(p, search):
@@ -332,7 +337,7 @@ def find_best(p, search):
         print("Costo: {}".format(s[k].makespan))
         print("\nTabu list: {}\n".format(search.tabulist)+BgColors.ENDC)
 
-    while not halt(k, search.max_iter):
+    while not halt(p, k, search):
 
         if verbose:
             print(u'\u2500' * 100)
@@ -598,7 +603,7 @@ verbose = True
 if __name__ == "__main__":
 
     p = Problema(*read_input())
-    tabusearch = Tabu(dim=2, max_iter=5)
+    tabusearch = Tabu(dim=2, max_iter=5, stallo=3)
 
     best = find_best(p, tabusearch)
 
