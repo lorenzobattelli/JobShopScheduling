@@ -3,8 +3,36 @@ from networkx.exception import NetworkXNoCycle
 from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
 from copy import deepcopy
 from random import choice
-from istanza import read_input
 from argparse import ArgumentParser
+import numpy as np
+
+def read_input(istanza):
+
+    if istanza == "toy":
+        n = 3 # numero job
+        m = 2 # numero macchine
+        lista_associazioni_macchine = [ # per ogni operazione dico su quale macchina va eseguita
+            [0, 1, 0, 1, 0, 1, 0], 
+            [0, 1, 0], 
+            [0, 1]
+        ] 
+        lista_durate = [  # per ogni operazione indico la sua durata
+            [2, 1, 2, 2, 1, 1, 1], 
+            [2, 2, 1], 
+            [2, 2]
+        ]
+
+    else:
+        
+        n = 10 # jobs, e operazioni per ciascuno
+        m = 10 # machines
+        d = 100 # durata massima
+        generator = np.random.default_rng(seed=0)
+
+        lista_associazioni_macchine = generator.integers(low=0, high=m, size=(n, n))
+        lista_durate = generator.integers(low=1, high=d+1, size=(n, n))
+
+    return n, m, lista_associazioni_macchine, lista_durate
 
 
 class BgColors:
@@ -490,9 +518,9 @@ class Problema:
         s = Soluzione(problema=self, soluzione=soluzione_parziale, grafo=deepcopy(self.grafo_iniziale))
         if verbose:
             print(u'\u2501' * 100)
-            print(s.__str__())
-            print(u'\u2501' * 100)
-            print(u'\u2501' * 100)
+            print(s.__str__(), end="")
+            if euristica:
+                print("Euristica: {}".format(euristica_scelta))
             print()
         
         return s
@@ -625,6 +653,8 @@ if __name__ == "__main__":
     parser.add_argument('-v', '--verbose', action='store_true', default=False,
                         help="Verbose, se è True mostra output a schermo, altrimenti se False no")
 
+    parser.add_argument('--istanza', default="toy", type=str, choices=["toy", "10x10x10"],
+                        help="""Scelta dell'istanza da dare in input""")
     parser.add_argument('--multistart', default=1, type=int,
                         help="""Definisco il numero di soluzioni di partenza, in modo da appplicare la tabu search partendo da ciascuna di esse. 
                         Se ha valore 0, l'algoritmo procede eseguendo un single-start per ciascuna delle possibili euristiche, in questo caso: LPT, SPT, MIS, MWKR""")
@@ -650,6 +680,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     # arguments parser
+    istanza = args.istanza
     verbose = args.verbose
     multistart = args.multistart
     euristica = args.euristica
@@ -660,7 +691,8 @@ if __name__ == "__main__":
 
     opts = ("LPT", "SPT", "MIS", "MWKR") 
     num_starts = multistart if multistart > 0 else len(opts)
-    p = Problema(*read_input(), multistart=num_starts)
+
+    p = Problema(*read_input(istanza), multistart=num_starts)
 
     for start_i in range(num_starts):
 
@@ -673,15 +705,15 @@ if __name__ == "__main__":
         else:
             best = p.find_greedy_solution()
 
-        if verbose and tabu_search:
+        if verbose:
             print(u'\u2501' * 100)
             print(u'\u2501' * 100)
-        print("Miglior soluzione trovata start {}/{}".format(start_i+1, num_starts))
-        print_soluzione(best.soluzione)
-        if multistart == 0:
-            print("Euristica: {}".format(euristica))
-        print("Cammino critico: {}".format(best.cammino_critico[1:-1]))
-        print("Costo: {}\n".format(best.makespan)) 
-        
-        if tabu_search:
-            print_lista_soluzioni(p.lista_soluzioni)
+            print("Miglior soluzione trovata start {}/{}".format(start_i+1, num_starts))
+            print_soluzione(best.soluzione)
+            if multistart == 0:
+                print("Euristica: {}".format(euristica))
+            print("Cammino critico: {}".format(best.cammino_critico[1:-1]))
+            print("Costo: {}\n".format(best.makespan)) 
+            
+            if tabu_search:
+                print_lista_soluzioni(p.lista_soluzioni)
