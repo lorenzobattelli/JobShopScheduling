@@ -5,4 +5,4 @@ python3 main.py 		\
 	--max_iter=5 		\
 	--stallo=3 			\
 	--tabu_list_dim=5	\
-	#--multistart=1		
+	--multistart=1		
