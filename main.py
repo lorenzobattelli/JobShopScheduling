@@ -645,12 +645,12 @@ if __name__ == "__main__":
                         help="""Definisco il numero di soluzioni di partenza, in modo da appplicare la tabu search partendo da ciascuna di esse. 
                         Se ha valore 0, l'algoritmo esegue un single-start per ciascuna delle possibili euristiche: LPT, SPT, MIS, MWKR""")
     parser.add_argument('-heu', '--euristica', default="auto", type=str, choices=["LPT", "SPT", "MIS", "MWKR", "auto"],
-                        help="""Euritica di selezione per l'agoritmo greedy, le possibili opzioni sono LPT, SPT, MIS, MWKR, auto. 
-                        Se 'auto' (default) allora viene scelta casualmente ad ogni iterazione dall'algortimo.""")
+                        help="""Euritica di selezione per l'algoritmo greedy, le possibili opzioni sono LPT, SPT, MIS, MWKR, auto. 
+                        Se 'auto' (default = auto) allora viene scelta casualmente dall'algoritmo ad ogni iterazione.""")
 
     parser.add_argument('-ts', '--tabu_search', action='store_true', default=False,
                         help="""Se True, decido di utilizzare la tabu search per migliorare la soluzione iniziale ottenuta dall'algoritmo euristico greedy,
-                        altrimenti mi fermo alla prima soluzione data dall'algoritmo greedy""")
+                        altrimenti calcolo solamente la soluzione ottenuta dall'algoritmo greedy.""")
 
     parser.add_argument('-ldim', '--tabu_list_dim', default=2, type=int,
                         help="""Iperparametro per la tabu search: dimesione della tabu list. 
