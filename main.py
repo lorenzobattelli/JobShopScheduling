@@ -423,7 +423,8 @@ def find_best(p, search, start_i):
             else:
                 if verbose:
                     print("Non posso eseguire la mossa {} perché è vietata dalla tabulist\n".format(mossa))
-
+            
+            # controllo se ho terminato di le possibli mosse dell'intorno corrente
             if flag_loop >= n_mosse:
                 if verbose:
                     print(BgColors.FAIL+"Termino la ricerca. Non posso scegliere nessuna mossa dell'intorno"+BgColors.ENDC)
@@ -589,7 +590,7 @@ class Soluzione:
         ''' 
             Partendo dalla SOLUZIONE CORRENTE, effettuo un'esplorazione esaustiva dell'intorno,
             attraverso un passo di Very Large Neighborhood Search. Le mosse possibili che costituiscono l'intorno sono
-            in numero polinomiale, infatti dalla lunghezza del cammino critico
+            in numero polinomiale, dipendono infatti dalla lunghezza del cammino critico
         '''
         
         lista_valutazioni = []
