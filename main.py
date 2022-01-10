@@ -640,26 +640,26 @@ if __name__ == "__main__":
                         help="""Verbose, se è True mostra tutti i dettagli della computazione dell'algoritmo a schermo, 
                         altrimenti se False mostra solo la soluzione finale calcolata""")
 
-    parser.add_argument('-in', '--istanza', default="toy", type=str, choices=["toy", "10x10x10"],
+    parser.add_argument('-i', '--istanza', default="toy", type=str, choices=["toy", "10x10x10"],
                         help="""Scelta dell'istanza da dare in input tra le possibili, cioè [toy, 10x10x10].""")
-    parser.add_argument('-ms', '--multistart', default=1, type=int,
+    parser.add_argument('-m', '--multistart', default=1, type=int,
                         help="""Definisco il numero di soluzioni di partenza, in modo da appplicare la tabu search partendo da ciascuna di esse. 
                         Se ha valore 0, l'algoritmo esegue un single-start per ciascuna delle possibili euristiche: LPT, SPT, MIS, MWKR""")
-    parser.add_argument('-heu', '--euristica', default="auto", type=str, choices=["LPT", "SPT", "MIS", "MWKR", "auto"],
+    parser.add_argument('-e', '--euristica', default="auto", type=str, choices=["LPT", "SPT", "MIS", "MWKR", "auto"],
                         help="""Euritica di selezione per l'algoritmo greedy, le possibili opzioni sono LPT, SPT, MIS, MWKR, auto. 
                         Se 'auto' (default = auto) allora viene scelta casualmente dall'algoritmo ad ogni iterazione.""")
 
-    parser.add_argument('-ts', '--tabu_search', action='store_true', default=False,
+    parser.add_argument('-t', '--tabu_search', action='store_true', default=False,
                         help="""Se True, decido di utilizzare la tabu search per migliorare la soluzione iniziale ottenuta dall'algoritmo euristico greedy,
                         altrimenti calcolo solamente la soluzione ottenuta dall'algoritmo greedy.""")
 
-    parser.add_argument('-ldim', '--tabu_list_dim', default=2, type=int,
+    parser.add_argument('-d', '--tabu_list_dim', default=2, type=int,
                         help="""Iperparametro per la tabu search: dimesione della tabu list. 
                         (default = 2).""")
-    parser.add_argument('-max', '--max_iter', default=5, type=int,
+    parser.add_argument('-x', '--max_iter', default=5, type=int,
                         help="""Iperparametro per la tabu search: massimo numero di iterazioni per far terminare la tabu search. 
                         (default = 5).""")
-    parser.add_argument('-st', '--stallo', default=3, type=int,
+    parser.add_argument('-s', '--stallo', default=3, type=int,
                         help="""Iperparametro per la tabu search: massimo numero di iterazioni in cui la soluzione non 
                         migliora durante la search oltre il quale l'algoritmo termina. 
                         (default = 3).""")
