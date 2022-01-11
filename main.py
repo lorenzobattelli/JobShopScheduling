@@ -1,10 +1,11 @@
 from networkx import find_cycle, DiGraph
 from networkx.exception import NetworkXNoCycle
 from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
-from copy import deepcopy
+from copy import deepcopy, copy
 from random import choice
 from argparse import ArgumentParser
 import numpy as np
+from threading import Thread
 
 def read_input(istanza):
 
@@ -151,13 +152,14 @@ def print_groundset(groundset):
             print()   
 
 
-def print_lista_soluzioni(soluzioni):
+def print_lista_soluzioni(p):
     ''' stampo lista dei valori di f.o. delle soluzioni trovate attraverso Soluzione.find_greedy_solution() '''
 
-    print("Lista delle soluzioni trovate")
-    for i in range(len(soluzioni)):
-        best = min(soluzioni[i], key=lambda s: s.makespan)
-        print("Start {}:".format(i+1), [s.makespan for s in soluzioni[i]], BgColors.OKGREEN+"best = {}".format(best.makespan)+BgColors.ENDC)
+    soluzioni = p.lista_soluzioni
+    best = min(soluzioni, key=lambda s: s.makespan)
+    if multistart <= 1:
+        print(BgColors.OKBLUE + "[{}]".format(p.euristica)+ BgColors.ENDC, end=" ")
+    print(BgColors.OKBLUE + "({}, {}, {})".format(tabusearch.max_iter, tabusearch.dim, tabusearch.stallo) + BgColors.ENDC, [s.makespan for s in soluzioni], "\t", BgColors.OKGREEN + "best = {}".format(best.makespan) + BgColors.ENDC)
     
 
 def get_ops_by_jobid(job_id, operazioni):
@@ -251,8 +253,11 @@ def stop_conditions(ground_set):
     return empty
 
 
-def heuristic_sort(operazioni, tutte_ops):
+def heuristic_sort(operazioni, tutte_ops, euristica):
     ''' ordino una lista di operazioni in base ad un criterio euristico sulla durata dell'operazione '''
+
+    if tabu_search and multistart > 1:
+        euristica = choice(opts)
 
     if euristica == "LPT":
         sorted_ops = sorted(operazioni, reverse=True, key=lambda o: o.durata)
@@ -270,7 +275,7 @@ def heuristic_sort(operazioni, tutte_ops):
         sorted_map = sorted(mapp, reverse=True, key=lambda el: el[1])
         sorted_ops = [op for (op, _) in sorted_map]
 
-    return sorted_ops
+    return sorted_ops, euristica
 
 
 def prune_ops(jobs):
@@ -352,8 +357,8 @@ def halt(l_sols, k, search):
         return k >= search.max_iter
 
 
-def find_best(p, search, start_i):
-    s = p.lista_soluzioni[start_i]
+def find_best(p, search):
+    s = p.lista_soluzioni
 
     k = 0
     s.append(p.find_greedy_solution())
@@ -364,7 +369,7 @@ def find_best(p, search, start_i):
         print("Costo: {}".format(s[k].makespan))
         print("\nTabu list: {}\n".format(search.tabulist)+BgColors.ENDC)
 
-    while not halt(p.lista_soluzioni[start_i], k, search):
+    while not halt(p.lista_soluzioni, k, search):
 
         if verbose:
             print(u'\u2500' * 100)
@@ -443,13 +448,13 @@ def find_best(p, search, start_i):
 class Problema:
     ''' Istanza del problema, memorizza lista delle soluzioni trovate '''
 
-    def __init__(self, n, m, macchine_associate, durate_ops, multistart):
+    def __init__(self, n, m, macchine_associate, durate_ops, euristica):
         ''' prendo in input l'istanza del problema, istanzio le strutture dati e il grafo iniziale senza archi disgiuntivi '''
 
-        self.lista_soluzioni = [[] for _ in range(multistart)]
+        self.lista_soluzioni = []
         self.jobs, self.operazioni, self.macchine = build_collections(n, m, macchine_associate, durate_ops)
         self.grafo_iniziale = build_graph(self.jobs, self.operazioni)
-
+        self.euristica = euristica
 
     def find_greedy_solution(self):
         ''' algoritmo greedy non esatto per la ricerca di una soluzione ammissibile del problema '''
@@ -471,10 +476,10 @@ class Problema:
 
             for m_index in range(len(ground_set)):
                 possibili_operazioni = prune_ops(ground_set[m_index])
-                possibili_operazioni_ordinate = heuristic_sort(operazioni=possibili_operazioni, tutte_ops=self.operazioni)
+                possibili_operazioni_ordinate, heur = heuristic_sort(operazioni=possibili_operazioni, tutte_ops=self.operazioni, euristica=self.euristica)
                 if possibili_operazioni_ordinate != []:
                     if verbose:
-                        print("Seleziono per M{} con euristica {} tra le seguenti: {}".format(m_index+1, euristica, ["{}(d={})".format(op.id, op.durata) for op in possibili_operazioni_ordinate]))
+                        print("Seleziono per M{} con euristica {} tra le seguenti: {}".format(m_index+1, heur, ["{}(d={})".format(op.id, op.durata) for op in possibili_operazioni_ordinate]))
                 
                 for z in range(len(possibili_operazioni_ordinate)):
                     
@@ -506,7 +511,7 @@ class Problema:
         s = Soluzione(problema=self, soluzione=soluzione_parziale, grafo=deepcopy(self.grafo_iniziale))
         if verbose:
             print(u'\u2501' * 100)
-            print("Euristica: {}".format(euristica))
+            print("Euristica: {}".format(heur))
             print(s.__str__())
         
         return s
@@ -633,6 +638,28 @@ class Soluzione:
         return lista_ordinata_fo
 
 
+def handler(start_i, heu):
+    if multistart == 0:
+        heu = opts[start_i]
+    
+    if heu == "auto":
+        heu = choice(opts)
+
+    p = Problema(*read_input(istanza), euristica=heu)
+    
+    best = find_best(p, tabusearch)
+
+    if verbose:
+        print(u'\u2501' * 100)
+        print(u'\u2501' * 100)
+        print("Miglior soluzione trovata start {}/{}".format(start_i+1, num_starts))
+        print_soluzione(best.soluzione)
+        if multistart == 0:
+            print("Euristica: {}".format(heu))
+        print(best.__str__(), "\n")
+        
+    print_lista_soluzioni(p)
+
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Il programma risolve il problema del Job Shop Scheduling utilizzando la TabuSearch partendo da una soluzione iniziale calcolata con un algoritmo euristico costruttivo Greedy')
@@ -677,11 +704,12 @@ if __name__ == "__main__":
     stallo = args.stallo
 
     opts = ("LPT", "SPT", "MIS", "MWKR")
-    if euristica == "auto":
-        euristica = choice(opts)
 
     if not tabu_search:
-        p = Problema(*read_input(istanza), multistart=1)
+        if euristica == "auto":
+            euristica = choice(opts)
+
+        p = Problema(*read_input(istanza), euristica=euristica)
         best = p.find_greedy_solution()
 
         if not verbose:
@@ -690,24 +718,13 @@ if __name__ == "__main__":
             print(best.__str__())
 
     else:
+        tabusearch = Tabu(dim=tabu_list_dim, max_iter=max_iter, stallo=stallo)
+        
         num_starts = multistart if multistart > 0 else len(opts)
-        p = Problema(*read_input(istanza), multistart=num_starts)
+        threads = [Thread(target=handler, args=(i, euristica)) for i in range(num_starts)]
 
-        for start_i in range(num_starts):
+        for t in threads:
+            t.start()
 
-            if multistart == 0:
-                euristica = opts[start_i]
-
-            tabusearch = Tabu(dim=tabu_list_dim, max_iter=max_iter, stallo=stallo)
-            best = find_best(p, tabusearch, start_i)
-
-            if verbose:
-                print(u'\u2501' * 100)
-                print(u'\u2501' * 100)
-                print("Miglior soluzione trovata start {}/{}".format(start_i+1, num_starts))
-                print_soluzione(best.soluzione)
-                if multistart == 0:
-                    print("Euristica: {}".format(euristica))
-                print(best.__str__(), "\n")
-            
-        print_lista_soluzioni(p.lista_soluzioni)
+        for t in threads:
+            t.join()
