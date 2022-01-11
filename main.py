@@ -693,7 +693,7 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    # arguments parser VARIABILI GLOBALI
+    # arguments parser
     istanza = args.istanza
     verbose = args.verbose
     multistart = args.multistart
