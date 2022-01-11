@@ -1,7 +1,7 @@
 from networkx import find_cycle, DiGraph
 from networkx.exception import NetworkXNoCycle
 from networkx.algorithms.dag import dag_longest_path, dag_longest_path_length
-from copy import deepcopy, copy
+from copy import deepcopy
 from random import choice
 from argparse import ArgumentParser
 import numpy as np
